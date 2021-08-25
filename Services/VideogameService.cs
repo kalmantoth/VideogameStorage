@@ -1,5 +1,8 @@
 using VideogameStorage.Models;
 using VideogameStorage.Extensions;
+
+using Microsoft.AspNetCore.JsonPatch;
+
 using System.Collections.Generic;
 using System.Linq;
 using System;
@@ -18,7 +21,7 @@ namespace VideogameStorage.Services
             DatabaseInitilazition.InitData(_db);
         }
 
-        public Videogame CreateVideogame(Videogame videogame)
+        public Videogame Create(Videogame videogame)
         {
             
             _db.Add(videogame);
@@ -31,7 +34,7 @@ namespace VideogameStorage.Services
             return videogame;
         }
 
-        public IQueryable<Videogame> GetAllVideogamesByType(String gameType="")
+        public IQueryable<Videogame> GetAll(String gameType="")
         {
             var videogameList = _db.Videogames as IQueryable<Videogame>;
 
@@ -57,7 +60,7 @@ namespace VideogameStorage.Services
         }
 
 
-        public Videogame GetVideogameById(int videogameId)
+        public Videogame Get(int videogameId)
         {
             
 
@@ -84,20 +87,31 @@ namespace VideogameStorage.Services
 
             return videogame;
         }
+
+        public void UpdatePartially(int videogameId, JsonPatchDocument<Videogame> patch)
+        {
+            
+            Console.WriteLine("--------------");
+            Console.WriteLine("Updating videogame by [" + videogameId +"] id, where the partially modified data is: \n" + patch);
+            Console.WriteLine("--------------");
+
+        }
         
         public void Delete(int id)
         {
-            
-
             var videogame = _db.Videogames.FirstOrDefault(vg => vg.VideogameId == id);
             
-
             _db.Remove(_db.Videogames.Single(vg => vg.VideogameId == id));
             _db.SaveChanges();
 
             Console.WriteLine("--------------");
             Console.WriteLine("Deleting videogame by [" + id +"] id, where the deleted data is: \n" + videogame);
             Console.WriteLine("--------------");
+        }
+
+        public void SaveDBChanges()
+        {
+            _db.SaveChanges();
         }
 
     }

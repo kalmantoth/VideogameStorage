@@ -6,10 +6,13 @@ using Microsoft.Extensions.Logging;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.EntityFrameworkCore;
 
 using VideogameStorage.Models;
 using VideogameStorage.Services;
+
+
 
 namespace VideogameStorage.Controllers
 {
@@ -37,13 +40,13 @@ namespace VideogameStorage.Controllers
         {
             try
             {
-                _vService.CreateVideogame(videogame);
+                _vService.Create(videogame);
             
                 return new CreatedResult($"/videogame/{videogame.VideogameId}", videogame);
             }
             catch (Exception e)
             {
-                _logger.LogWarning(e, "Unable to POST product.");
+                _logger.LogWarning(e, "Unable to POST videogame.");
             
                 return ValidationProblem(e.Message);
             }
@@ -58,10 +61,10 @@ namespace VideogameStorage.Controllers
         {
             // Logger example usage //      //      //      //      //      //
             if (request.Limit >= 100)
-                _logger.LogInformation("Requesting more than 100 products.");
+                _logger.LogInformation("Requesting more than 100 videogames.");
             //      //      //      //      //      //      //      //      //
 
-            var result = _vService.GetAllVideogamesByType(gameType);
+            var result = _vService.GetAll(gameType);
 
             Response.Headers["x-total-count"] = result.Count().ToString();
             
@@ -77,40 +80,85 @@ namespace VideogameStorage.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<Videogame> GetVideogameById([FromRoute] int videogameId)
         {
-            var videogame = _vService.GetVideogameById(videogameId);
+            var videogameDb = _vService.Get(videogameId);
             
-            if (videogame == null) return NotFound();
+            if (videogameDb == null) return NotFound();
             
-            return Ok(videogame);
+            return Ok(videogameDb);
         }
 
 
-        [HttpPut("{id}")]
-        public IActionResult Update(int id, Videogame videogame)
+        [HttpPut("{videogameId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public ActionResult<Videogame> PutVideogameById([FromRoute] int videogameId, [FromBody] Videogame videogame)
         {
-            if (id != videogame.VideogameId)
-                return BadRequest();
+            try
+            {
+                if (videogameId != videogame.VideogameId)
+                    return BadRequest();
 
-            var existingVideogame = _vService.GetVideogameById(id);
-            if(existingVideogame is null)
-                return NotFound();
+                var videogameDb = _vService.Get(videogameId);
 
-            _vService.Update(videogame);           
+                if (videogameDb == null) return NotFound();
+            
+                _vService.Update(videogame);
+            
+                return Ok(videogame);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Unable to PUT videogame.");
+            
+                return ValidationProblem(e.Message);
+            }
+        }
 
+        [HttpDelete]
+        [Route("{videogameId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<Videogame> DeleteVideogame([FromRoute] int videogameId)
+        {
+            var videogameDb = _vService.Get(videogameId);
+
+            if (videogameDb == null) return NotFound();
+            
+            _vService.Delete(videogameId);
+            
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        [HttpPatch]
+        [Route("{videogameId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public ActionResult<Videogame> PatchProduct([FromRoute] 
+            int videogameId, [FromBody] JsonPatchDocument<Videogame> patch)
         {
-            var vg = _vService.GetVideogameById(id);
+            try
+            {
+                var videogameDb = _vService.Get(videogameId);
+            
+                if (videogameDb == null) return NotFound();
 
-            if (vg is null)
-                return NotFound();
-
-            _vService.Delete(id);
-
-            return NoContent();
+                patch.ApplyTo(videogameDb, ModelState);
+                if (!ModelState.IsValid || !TryValidateModel(videogameDb)) 
+                        return ValidationProblem(ModelState);
+                _vService.SaveDBChanges();
+                
+                _vService.UpdatePartially(videogameId, patch);
+                
+                return Ok(videogameDb);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Unable to PATCH videogame.");
+            
+                return ValidationProblem(e.Message);
+            }
         }
 
     }

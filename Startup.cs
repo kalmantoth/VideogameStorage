@@ -40,9 +40,7 @@ namespace VideogameStorage
             services.AddScoped<VideogameService>();
             services.AddDbContext<VideogameContext>(options =>
                 options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
-            
-
-            services.AddControllers();
+            services.AddControllers().AddNewtonsoftJson();
             services.AddSwaggerGen(c => c.SwaggerDoc("v1", new OpenApiInfo
                 {
                 Title = "Videogame Storage",
