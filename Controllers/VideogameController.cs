@@ -7,15 +7,16 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 using VideogameStorage.Models;
 using VideogameStorage.Services;
-
-
+using VideogameStorage.Authentication;
 
 namespace VideogameStorage.Controllers
 {
+    //[Authorize]
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
@@ -32,7 +33,7 @@ namespace VideogameStorage.Controllers
             _vService = vS;
         }
 
-
+        //[Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -54,7 +55,6 @@ namespace VideogameStorage.Controllers
 
 
         [HttpGet]
-        [Route("")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<IQueryable<Videogame>> GetVideogames([FromQuery] string gameType,
                                                             [FromQuery] VideogameRequest request)
@@ -87,7 +87,7 @@ namespace VideogameStorage.Controllers
             return Ok(videogameDb);
         }
 
-
+        //[Authorize(Roles = UserRoles.Admin)]
         [HttpPut("{videogameId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -115,6 +115,7 @@ namespace VideogameStorage.Controllers
             }
         }
 
+        //[Authorize(Roles = UserRoles.Admin)]
         [HttpDelete]
         [Route("{videogameId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -130,6 +131,7 @@ namespace VideogameStorage.Controllers
             return NoContent();
         }
 
+        //[Authorize(Roles = UserRoles.Admin)]
         [HttpPatch]
         [Route("{videogameId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]

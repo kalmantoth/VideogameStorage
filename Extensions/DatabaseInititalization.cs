@@ -6,7 +6,7 @@ namespace VideogameStorage.Extensions
 {
     public static class DatabaseInitilazition
     {
-    public static void InitData(VideogameContext context)
+    public static void InitData(ApplicationDbContext context)
     {
         var rnd = new Random();
 

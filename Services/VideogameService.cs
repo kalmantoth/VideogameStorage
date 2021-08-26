@@ -12,9 +12,9 @@ namespace VideogameStorage.Services
     public class VideogameService
     {
         
-        private readonly VideogameContext _db;
+        private readonly ApplicationDbContext _db;
 
-        public VideogameService(VideogameContext videogameContext)
+        public VideogameService(ApplicationDbContext videogameContext)
         {
             _db = videogameContext;
             if (_db.Videogames.Any()) return;
