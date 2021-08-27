@@ -1,0 +1,14 @@
+<div class="container-sm">
+    <div class="row align-items-center">
+        <div class="col">
+                <span class="h2 text-uppercase text-left">Videogame List</span>
+        </div>
+        <div class="col" >
+            <div class="float-end">
+                <button type="button" class="btn btn-primary btn-lg">Add new</button>
+            </div>
+        </div>
+    </div>
+    <hr>
+    <videogame-thumbnail *ngFor="let videogame of videogames" [videogame]="videogame"></videogame-thumbnail>
+</div>

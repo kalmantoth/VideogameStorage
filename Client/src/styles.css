@@ -1,1 +1,9 @@
 /* You can add global styles to this file, and also import other style files */
+
+.true-background {
+    background-color: rgb(85, 85, 85);
+}
+
+div{
+    color: rgb(209, 209, 209);
+}

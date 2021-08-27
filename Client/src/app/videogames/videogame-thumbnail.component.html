@@ -1,0 +1,45 @@
+<div class="row border rounded-3 ">
+    <div class="col">
+        <div class="row">
+            <div class="col header">
+                <span>Name:</span>
+            </div>
+            <div class="col data">
+                <span>{{videogame.name}}</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col header">
+                <span>Type:</span>
+            </div>
+            <div class="col data">
+                <span>{{videogame.type}}</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col header">
+                <span>Release date:</span>
+            </div>
+            <div class="col data">
+                <span>{{videogame.releaseDate}}</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col header">
+                <span>Rating:</span>
+            </div>
+            <div class="col data">
+                <span>{{videogame.rating}}</span>
+            </div>
+        </div>
+        <div *ngIf="videogame.consoleExclusive" class="row">
+            <div class="col header consoleExclusive">
+                <span>Console Exclusive Title</span>
+            </div>
+        </div>
+    </div>
+    <div class="d-grid col" style="max-width: 300px;">
+        <button type="button" class="btn btn-outline-warning">Modify</button><br>
+        <button type="button" class="btn btn-outline-danger">Delete</button>
+    </div>
+</div>
