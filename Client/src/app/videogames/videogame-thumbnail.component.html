@@ -1,35 +1,39 @@
-<div class="row border rounded-3 ">
+<div class="row border rounded-3" [ngClass]="{'border-warning border-5' : editMode}">
     <div class="col">
         <div class="row">
             <div class="col header">
-                <span>Name:</span>
+                <span>Name</span>
             </div>
             <div class="col data">
-                <span>{{videogame.name}}</span>
+                <span *ngIf="!editMode">{{origVideogame.name}}</span>
+                <input *ngIf="editMode" id="tempVideogame.name" [(ngModel)]="tempVideogame.name" placeholder="name">
             </div>
         </div>
         <div class="row">
             <div class="col header">
-                <span>Type:</span>
+                <span>Type</span>
             </div>
             <div class="col data">
-                <span>{{videogame.type}}</span>
+                <span *ngIf="!editMode">{{videogame.type}}</span>
+                <input *ngIf="editMode" id="tempVideogame.type" [(ngModel)]="tempVideogame.type" placeholder="type">
             </div>
         </div>
         <div class="row">
             <div class="col header">
-                <span>Release date:</span>
+                <span>Release date</span>
             </div>
             <div class="col data">
-                <span>{{videogame.releaseDate}}</span>
+                <span *ngIf="!editMode">{{videogame.releaseDate}}</span>
+                <input *ngIf="editMode" id="tempVideogame.releaseDate" [(ngModel)]="tempVideogame.releaseDate" placeholder="release date">
             </div>
         </div>
         <div class="row">
             <div class="col header">
-                <span>Rating:</span>
+                <span>Rating</span>
             </div>
             <div class="col data">
-                <span>{{videogame.rating}}</span>
+                <span *ngIf="!editMode">{{videogame.rating}}</span>
+                <input *ngIf="editMode" id="tempVideogame.rating" [(ngModel)]="tempVideogame.rating" placeholder="rating">
             </div>
         </div>
         <div *ngIf="videogame.consoleExclusive" class="row">
@@ -38,8 +42,11 @@
             </div>
         </div>
     </div>
-    <div class="d-grid col" style="max-width: 300px;">
-        <button type="button" class="btn btn-outline-warning">Modify</button><br>
-        <button type="button" class="btn btn-outline-danger">Delete</button>
+    <div class="d-grid col" style="margin-top: 3%; max-width: 300px; max-height: 130px;">
+        <button *ngIf="!editMode" type="button" class="btn btn-outline-warning" (click)="enableEditMode()">Edit</button>
+        <button *ngIf="editMode" type="button" class="btn btn-outline-warning" (click)="confirmEdit()">Confirm</button>
+        <button *ngIf="!editMode" type="button" class="btn btn-outline-danger">Delete</button>
+        <button *ngIf="editMode" type="button" class="btn btn-outline-danger" (click)="cancelEdit()">Back</button>
+        
     </div>
 </div>

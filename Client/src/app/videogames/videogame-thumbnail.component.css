@@ -5,6 +5,11 @@
     min-height: 220px;
 }
 
+.row.border.rounded-3.border-warning {
+    background-color: rgb(25, 25, 25);
+    border-color: rgb(253, 126, 20);
+}
+
 .col.header{
     font-size: 26px;
     
