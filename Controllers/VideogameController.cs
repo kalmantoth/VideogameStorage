@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Microsoft.Extensions.Logging;
 
@@ -8,16 +9,19 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.EntityFrameworkCore;
 
 using VideogameStorage.Models;
 using VideogameStorage.Services;
 using VideogameStorage.Authentication;
 
+
 namespace VideogameStorage.Controllers
 {
     //[Authorize]
     [ApiController]
+    [EnableCors("LocalHostPolicy")]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [Produces("application/json")]
@@ -33,58 +37,78 @@ namespace VideogameStorage.Controllers
             _vService = vS;
         }
 
+        [HttpGet]
+        [ProducesResponseType(typeof(List<Videogame>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> GetAllVideogames(int offset, int limit)
+        {
+            try
+            {
+                var videogames = await _vService.GetAllVideogamesAsync();
+                return Ok(videogames);
+            }
+            catch (Exception exp)
+            {
+                _logger.LogError(exp.Message);
+                return BadRequest(exp.Message);
+            }
+        }
+
+        [HttpGet("{offset}/{limit}")]
+        [ProducesResponseType(typeof(List<Videogame>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> GetVideogames(int offset, int limit)
+        {
+            try
+            {
+                var videogames = await _vService.GetVideogamesAsync(offset, limit);
+                Response.Headers.Add("X-Inline-Count", videogames.TotalRecords.ToString());
+                return Ok(videogames.Records);
+            }
+            catch (Exception exp)
+            {
+                _logger.LogError(exp.Message);
+                return BadRequest(exp.Message);
+            }
+        }
+
+        [HttpGet("{videogameId}", Name = "GetVideogameRoute")]
+        [ProducesResponseType(typeof(Videogame), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult> GetVideogameById(int videogameId)
+        {
+            try
+            {
+                var videogame = await _vService.GetVideogameAsync(videogameId);
+                return Ok(videogame);
+            }
+            catch (Exception exp)
+            {
+                _logger.LogError(exp.Message);
+                return BadRequest(exp.Message);
+            }
+        }
+
         //[Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<Videogame> PostVideogame([FromBody] Videogame videogame)
+        public async Task<ActionResult> PostVideogame([FromBody] Videogame videogame)
         {
             try
             {
-                _vService.Create(videogame);
-            
-                return new CreatedResult($"/videogame/{videogame.VideogameId}", videogame);
+                var newVideogame = await _vService.CreateVideogameAsync(videogame);
+                if (newVideogame == null)
+                {
+                    return BadRequest();
+                }
+                return CreatedAtRoute("GetVideogameRoute", new { videogameId = newVideogame.VideogameId }, newVideogame);
             }
-            catch (Exception e)
+            catch (Exception exp)
             {
-                _logger.LogWarning(e, "Unable to POST videogame.");
-            
-                return ValidationProblem(e.Message);
+                _logger.LogError(exp.Message);
+                return BadRequest();
             }
-        }
-
-
-        [HttpGet]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public ActionResult<IQueryable<Videogame>> GetVideogames([FromQuery] string gameType,
-                                                            [FromQuery] VideogameRequest request)
-        {
-            // Logger example usage //      //      //      //      //      //
-            if (request.Limit >= 100)
-                _logger.LogInformation("Requesting more than 100 videogames.");
-            //      //      //      //      //      //      //      //      //
-
-            var result = _vService.GetAll(gameType);
-
-            Response.Headers["x-total-count"] = result.Count().ToString();
-            
-            return Ok(result
-                .OrderBy(vg => vg.VideogameId)
-                .Skip(request.Offset)
-                .Take(request.Limit));
-        }
-
-        [HttpGet]
-        [Route("{videogameId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<Videogame> GetVideogameById([FromRoute] int videogameId)
-        {
-            var videogameDb = _vService.Get(videogameId);
-            
-            if (videogameDb == null) return NotFound();
-            
-            return Ok(videogameDb);
         }
 
         //[Authorize(Roles = UserRoles.Admin)]
@@ -92,76 +116,49 @@ namespace VideogameStorage.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<Videogame> PutVideogameById([FromRoute] int videogameId, [FromBody] Videogame videogame)
+        public async Task<ActionResult> PutVideogameById(int videogameId, [FromBody] Videogame videogame)
         {
             try
             {
                 if (videogameId != videogame.VideogameId)
+                    return NotFound();
+
+                var status = await _vService.UpdateVideogameAsync(videogame);
+                if (!status)
+                {
                     return BadRequest();
-
-                var videogameDb = _vService.Get(videogameId);
-
-                if (videogameDb == null) return NotFound();
+                }
             
-                _vService.Update(videogame);
-            
-                return Ok(videogame);
+                return Ok();
             }
             catch (Exception e)
             {
-                _logger.LogWarning(e, "Unable to PUT videogame.");
-            
+                _logger.LogError(e, "Unable to PUT videogame.");
                 return ValidationProblem(e.Message);
             }
         }
 
         //[Authorize(Roles = UserRoles.Admin)]
-        [HttpDelete]
-        [Route("{videogameId}")]
+        [HttpDelete("{videogameId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<Videogame> DeleteVideogame([FromRoute] int videogameId)
-        {
-            var videogameDb = _vService.Get(videogameId);
-
-            if (videogameDb == null) return NotFound();
-            
-            _vService.Delete(videogameId);
-            
-            return NoContent();
-        }
-
-        //[Authorize(Roles = UserRoles.Admin)]
-        [HttpPatch]
-        [Route("{videogameId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<Videogame> PatchProduct([FromRoute] 
-            int videogameId, [FromBody] JsonPatchDocument<Videogame> patch)
+        public async Task<ActionResult> DeleteVideogame(int videogameId)
         {
             try
             {
-                var videogameDb = _vService.Get(videogameId);
-            
-                if (videogameDb == null) return NotFound();
-
-                patch.ApplyTo(videogameDb, ModelState);
-                if (!ModelState.IsValid || !TryValidateModel(videogameDb)) 
-                        return ValidationProblem(ModelState);
-                _vService.SaveDBChanges();
-                
-                _vService.UpdatePartially(videogameId, patch);
-                
-                return Ok(videogameDb);
+                var status = await _vService.DeleteVideogameAsync(videogameId);
+                if (!status)
+                {
+                    return BadRequest();
+                }
+                return Ok();
             }
-            catch (Exception e)
+            catch (Exception exp)
             {
-                _logger.LogWarning(e, "Unable to PATCH videogame.");
-            
-                return ValidationProblem(e.Message);
+                _logger.LogError(exp.Message);
+                return BadRequest();
             }
         }
-
+        
     }
 }

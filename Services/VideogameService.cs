@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.JsonPatch;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace VideogameStorage.Services
 {
@@ -13,106 +16,119 @@ namespace VideogameStorage.Services
     {
         
         private readonly ApplicationDbContext _db;
+        private readonly ILogger<VideogameService> _logger;
 
-        public VideogameService(ApplicationDbContext videogameContext)
+        public VideogameService(ILogger<VideogameService> logger, ApplicationDbContext videogameContext)
         {
+            _logger = logger;
             _db = videogameContext;
             if (_db.Videogames.Any()) return;
             DatabaseInitilazition.InitData(_db);
         }
 
-        public Videogame Create(Videogame videogame)
+        public async Task<List<Videogame>> GetAllVideogamesAsync()
         {
-            
+            Console.WriteLine("--------------");
+            Console.WriteLine("Listing all videogames in the database");
+            Console.WriteLine("--------------");
+
+            var videogames = await _db.Videogames
+                                 .OrderBy(vg => vg.VideogameId)
+                                 .ToListAsync();
+            return videogames;
+        }
+
+        public async Task<PagingResult<Videogame>> GetVideogamesAsync(int offset = 0, int limit = 15)
+        {
+            Console.WriteLine("--------------");
+            Console.WriteLine("Listing videogames in the database");
+            Console.WriteLine("--------------");
+
+            var totalRecords = await _db.Videogames.CountAsync();
+            var videogames = await _db.Videogames
+                                 .OrderBy(vg => vg.VideogameId)
+                                 .Skip(offset)
+                                 .Take(limit)
+                                 .ToListAsync();
+            return new PagingResult<Videogame>(videogames, totalRecords);
+        }
+
+
+        public async Task<Videogame> GetVideogameAsync(int videogameId)
+        {
+
+            Console.WriteLine("--------------");
+            Console.WriteLine("List videogame by [" + videogameId +"] id");
+            Console.WriteLine("--------------");
+
+            return await _db.Videogames
+                                 .SingleOrDefaultAsync(vg => vg.VideogameId == videogameId);
+        }
+
+        public async Task<Videogame> CreateVideogameAsync(Videogame videogame)
+        {
             _db.Add(videogame);
-            _db.SaveChanges();
-
-            Console.WriteLine("--------------");
-            Console.WriteLine("Creating a new videogame: \n" + videogame);
-            Console.WriteLine("--------------");
-
-            return videogame;
-        }
-
-        public IQueryable<Videogame> GetAll(String gameType="")
-        {
-            var videogameList = _db.Videogames as IQueryable<Videogame>;
-
-            if(!string.IsNullOrEmpty(gameType))
+            try
             {
-                videogameList = videogameList.Where(vg => vg.Type.StartsWith(gameType));
+              await _db.SaveChangesAsync();
+            }
+            catch (System.Exception exp)
+            {
+               _logger.LogError($"Error in {nameof(CreateVideogameAsync)}: " + exp.Message);
             }
 
-            // Just for console logging the list
-            var myString = "";
-            var sb = new System.Text.StringBuilder();
-            foreach (Videogame vg in videogameList)
+            return videogame;
+        }
+
+        public async Task<bool> UpdateVideogameAsync(Videogame videogame)
+        {
+
+            _db.Videogames.Attach(videogame);
+            _db.Entry(videogame).State = EntityState.Modified;
+            try
             {
-                sb.Append(vg).Append(",\n");
+                if( await _db.SaveChangesAsync() > 0)
+                {
+                    Console.WriteLine("--------------");
+                    Console.WriteLine("Updating videogame by [" + videogame.VideogameId +"] id, where the modified data is: \n" + videogame);
+                    Console.WriteLine("--------------");
+                    return true;
+                }
+                else
+                    return false;
             }
-            myString = sb.Remove(sb.Length - 2, 2).ToString();
-            //
+            catch (Exception exp)
+            {
+                _logger.LogError($"Error in {nameof(UpdateVideogameAsync)}: " + exp.Message);
+            }
+            return false;
 
-            Console.WriteLine("--------------");
-            Console.WriteLine("Listing videogames in the database: \n" + myString);
-            Console.WriteLine("--------------");
-            return videogameList;
         }
 
-
-        public Videogame Get(int videogameId)
+        public async Task<bool> DeleteVideogameAsync(int videogameId)
         {
-            
-
-            var videogame = _db.Videogames.FirstOrDefault(vg => vg.VideogameId == videogameId);
-
-            Console.WriteLine("--------------");
-            Console.WriteLine("Listing videogame by [" + videogameId +"] id: \n" + videogame);
-            Console.WriteLine("--------------");
-
-            return videogame;
+            var videogame = await _db.Videogames
+                                .SingleOrDefaultAsync(vg => vg.VideogameId == videogameId);
+            _db.Remove(videogame);
+            try
+            {
+                if( await _db.SaveChangesAsync() > 0)
+                {
+                    Console.WriteLine("--------------");
+                    Console.WriteLine("Deleted videogame by [" + videogameId +"] id");
+                    Console.WriteLine("--------------");
+                    return true;
+                }
+                else
+                    return false;
+            }
+            catch (System.Exception exp)
+            {
+               _logger.LogError($"Error in {nameof(DeleteVideogameAsync)}: " + exp.Message);
+            }
+            return false;
         }
 
-        public Videogame Update(Videogame videogame)
-        {
-            
-
-            var vg = _db.Videogames.First(vg => vg.VideogameId == videogame.VideogameId);
-            vg = videogame;
-            _db.SaveChanges();
-
-            Console.WriteLine("--------------");
-            Console.WriteLine("Updating videogame by [" + videogame.VideogameId +"] id, where the modified data is: \n" + videogame);
-            Console.WriteLine("--------------");
-
-            return videogame;
-        }
-
-        public void UpdatePartially(int videogameId, JsonPatchDocument<Videogame> patch)
-        {
-            
-            Console.WriteLine("--------------");
-            Console.WriteLine("Updating videogame by [" + videogameId +"] id, where the partially modified data is: \n" + patch);
-            Console.WriteLine("--------------");
-
-        }
-        
-        public void Delete(int id)
-        {
-            var videogame = _db.Videogames.FirstOrDefault(vg => vg.VideogameId == id);
-            
-            _db.Remove(_db.Videogames.Single(vg => vg.VideogameId == id));
-            _db.SaveChanges();
-
-            Console.WriteLine("--------------");
-            Console.WriteLine("Deleting videogame by [" + id +"] id, where the deleted data is: \n" + videogame);
-            Console.WriteLine("--------------");
-        }
-
-        public void SaveDBChanges()
-        {
-            _db.SaveChanges();
-        }
 
     }
 

@@ -5,7 +5,7 @@
                 <span>Name</span>
             </div>
             <div class="col data">
-                <span *ngIf="!editMode">{{origVideogame.name}}</span>
+                <span *ngIf="!editMode">{{videogame.name}}</span>
                 <input *ngIf="editMode" id="tempVideogame.name" [(ngModel)]="tempVideogame.name" placeholder="name">
             </div>
         </div>

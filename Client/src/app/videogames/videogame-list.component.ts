@@ -26,8 +26,17 @@ export class VideogameListComponent implements OnInit {
   }
 
   getVideogames(): void{
-    this.videogameService.getVideogames()
-            .subscribe(videogames => this.videogames = videogames);
+    this.videogameService.getVideogames(0, 10)
+            .subscribe(videogames => {
+              this.videogames = videogames;
+            });
   }
 
+  ngOnChanges(): void{
+    this.getVideogames();
+  }
+
+  
 }
+
+

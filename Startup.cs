@@ -39,6 +39,18 @@ namespace VideogameStorage
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            services.AddCors(options => options.AddPolicy("LocalHostPolicy", builder =>
+                {
+                    builder
+                        .WithOrigins("http://localhost:4200")
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials()
+                        .SetPreflightMaxAge(TimeSpan.FromSeconds(2520));
+                })
+            );
+
             // Api Versioning
             services.AddApiVersioning(opt => opt.ReportApiVersions = true);
 
@@ -103,6 +115,7 @@ namespace VideogameStorage
 
             app.UseAuthentication();
             app.UseRouting();
+            app.UseCors();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>

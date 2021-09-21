@@ -1,5 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { CommonUtilsService } from '../common/common-utils.service';
 import { IVideogame } from './shared/videogame.model';
+import { VideogameService } from './shared/videogame.service';
 
 @Component({
   selector: 'videogame-thumbnail',
@@ -10,16 +12,14 @@ export class VideogameThumbnailComponent implements OnInit {
 
   editMode? : boolean;
   tempVideogame! : IVideogame;
-  origVideogame! : IVideogame;
 
   @Input() videogame!:IVideogame;
 
-  constructor() { }
+  constructor(private videogameService: VideogameService, private commonUtilsService : CommonUtilsService) { }
 
   ngOnInit(): void {
     this.editMode = false;    
-    this.origVideogame = Object.create(this.videogame);
-    this.tempVideogame = Object.create(this.videogame);
+    this.tempVideogame = Object.assign({}, this.videogame);
   }
 
   enableEditMode(): void {
@@ -29,13 +29,15 @@ export class VideogameThumbnailComponent implements OnInit {
   confirmEdit(): void {
     
     this.videogame = this.tempVideogame;
-    this.enableEditMode();
-    this.ngOnInit();
+    this.videogameService.updateVideogame(this.videogame).subscribe(() => {
+      this.enableEditMode();
+      this.ngOnInit();
+    });
+    
   }
 
   cancelEdit(): void {
 
-    this.videogame = this.origVideogame;
     this.enableEditMode();
     this.ngOnInit();
   }
